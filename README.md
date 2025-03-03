@@ -1,14 +1,14 @@
 # adpro-group-01
 This repository contains the group project of group 01 for the advanced programming course.
 
-Michel Osswald
+Michel
 64827@novasbe.pt
 
-Konstantin Gottschalk
+Konstantin
 67864@novasbe.pt
 
-Simon Joshua Trahasch
+Simon
 63545@novasbe.pt
 
-Vinzent Theuer
+Vinzent
 65479@novasbe.pt
