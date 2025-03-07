@@ -8,8 +8,6 @@ The module allows for efficient management of movie datasets by:
 - Creating necessary directory structures for data storage
 - Downloading data from specified URLs
 - Extracting compressed data files (tar.gz format)
-Example:
-    analyzer = MovieDataAnalyzer('https://example.com/movie_data.tar.gz')
 """
 
 import os
@@ -20,30 +18,29 @@ import requests
 class MovieDataAnalyzer:
     """Class for downloading and analyzing movie data."""
 
-    def __init__(self, data_url: str) -> None:
+    def __init__(self) -> None:
         """
         Initialize the MovieDataAnalyzer class.
 
         Args:
             data_url: URL of the data file to download
         """
+        # Set the data URL
+        data_url = 'http://www.cs.cmu.edu/~ark/personas/data/MovieSummaries.tar.gz'
+
         # Set the download directory
         self.download_dir: str = '../downloads'
-
-        # Set the file path
-        filename: str = 'MovieSummaries'
-        self.file_path: str = os.path.join(self.download_dir, filename)
 
         # Create the download directory if it doesn't exist
         if not os.path.exists(self.download_dir):
             os.makedirs(self.download_dir)
 
-        # Download the file if it doesn't exist
+        # Download if file does not exist in the download directory
+        self.file_path: str = os.path.join(self.download_dir, os.path.basename(data_url))
         if not os.path.exists(self.file_path):
-            print("Downloading Data...")
             self._download_file(data_url)
         else:
-            print(f"File {filename} already exists. Skipping download.")
+            print(f"File {os.path.basename(self.file_path)} already exists in the download directory.")
 
     def _download_file(self, url: str) -> None:
         """
@@ -65,5 +62,9 @@ class MovieDataAnalyzer:
         # Extract the tarball
         print(f"Extracting {os.path.basename(self.file_path)}...")
         with tarfile.open(self.file_path, 'r:gz') as tar:
-            tar.extractall(path=self.download_dir)
+            tar.extractall(path=self.download_dir, filter="data")
         print("Extraction complete.")
+
+
+# Create an instance of the MovieDataAnalyzer class
+analyzer = MovieDataAnalyzer()
