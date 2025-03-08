@@ -156,7 +156,7 @@ class MovieDataAnalyzer:
 
         # Count the occurrences of each genre
         genre_counts = genres.value_counts().head(N).reset_index()
-        genre_counts.columns = ['Movie_Type', 'Count']
+        genre_counts.columns = ['movie_Type', 'count']
 
         return genre_counts
 
@@ -173,7 +173,7 @@ class MovieDataAnalyzer:
 
         # Create a histogram of the actor counts
         actor_histogram = actor_counts.value_counts().reset_index()
-        actor_histogram.columns = ['Number_of_Actors', 'Movie_Count']
+        actor_histogram.columns = ['number_of_actors', 'movie_count']
         actor_histogram = actor_histogram.sort_values(by='Number_of_Actors')
 
         return actor_histogram
@@ -254,3 +254,8 @@ class MovieDataAnalyzer:
 
 # Create an instance of the MovieDataAnalyzer class
 analyzer = MovieDataAnalyzer()
+
+# Calculate the top 10 movie types
+top_movie_types = analyzer.movie_type(N=1)
+print("\nTop 10 Movie Types:")
+print(top_movie_types['Movie_Type'])
