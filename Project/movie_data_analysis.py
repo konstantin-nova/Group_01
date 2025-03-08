@@ -148,15 +148,18 @@ class MovieDataAnalyzer:
             pd.DataFrame: DataFrame with columns "Movie_Type" and "Count" for
             the top N movie types.
         """
+        # Input validation
         if not isinstance(N, int):
             raise TypeError("N must be an integer")
+        if N <= 0:
+            raise ValueError("N must be a positive integer")
 
         # Split the movie genres into individual genres
         genres = self.movie_metadata['movie_genres'].str.split(',').explode()
 
         # Count the occurrences of each genre
         genre_counts = genres.value_counts().head(N).reset_index()
-        genre_counts.columns = ['movie_Type', 'count']
+        genre_counts.columns = ['movie_type', 'count']
 
         return genre_counts
 
@@ -250,12 +253,3 @@ class MovieDataAnalyzer:
             plt.show()
 
         return height_counts
-
-
-# Create an instance of the MovieDataAnalyzer class
-analyzer = MovieDataAnalyzer()
-
-# Calculate the top 10 movie types
-top_movie_types = analyzer.movie_type(N=1)
-print("\nTop 10 Movie Types:")
-print(top_movie_types['Movie_Type'])

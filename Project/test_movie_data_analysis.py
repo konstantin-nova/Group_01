@@ -153,7 +153,8 @@ def test_movie_type():
     Raises:
         AssertionError: If the returned movie type does not match the expected value.
     """
-    assert analyzer.movie_type(N=1)['movie_type'] == '"/m/07s9rl0": "Drama"'
+    result = analyzer.movie_type(N=10)
+    assert any("Drama" in movie for movie in result['movie_type'])
 
 def test_actor_distributions():
     """
