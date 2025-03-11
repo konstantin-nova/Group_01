@@ -157,8 +157,8 @@ class MovieDataAnalyzer:
         # Split the movie genres into individual genres
         genres = self.movie_metadata['movie_genres'].str.split(',').explode()
 
-        # Remove parentheses and quotes from the genre names
-        genres = genres.str.replace(r'["{},]', '', regex=True)
+        # Remove parentheses, quotes and unnecessary whitespaces from the genre names
+        genres = genres.str.replace(r'["{},]', '', regex=True).str.strip()
 
         # Count the occurrences of each genre
         genre_counts = genres.value_counts().head(N).reset_index()
