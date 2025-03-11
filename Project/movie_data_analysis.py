@@ -160,6 +160,9 @@ class MovieDataAnalyzer:
         # Remove parentheses, quotes and unnecessary whitespaces from the genre names
         genres = genres.str.replace(r'["{},]', '', regex=True).str.strip()
 
+        # Split at space to extract the genre name
+        genres = genres.str.split(' ').str[-1]
+
         # Count the occurrences of each genre
         genre_counts = genres.value_counts().head(N).reset_index()
         genre_counts.columns = ['movie_type', 'count']
