@@ -180,7 +180,7 @@ class MovieDataAnalyzer:
         # Create a histogram of the actor counts
         actor_histogram = actor_counts.value_counts().reset_index()
         actor_histogram.columns = ['number_of_actors', 'movie_count']
-        actor_histogram = actor_histogram.sort_values(by='Number_of_Actors')
+        actor_histogram = actor_histogram.sort_values(by='number_of_actors')
 
         return actor_histogram
 
@@ -256,3 +256,4 @@ class MovieDataAnalyzer:
             plt.show()
 
         return height_counts
+
