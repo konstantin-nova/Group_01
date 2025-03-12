@@ -20,6 +20,33 @@ import matplotlib.pyplot as plt
 
 class MovieDataAnalyzer:
     """Class for downloading and analyzing movie data."""
+    @staticmethod
+    def parse_release_date(date_str):
+        """
+        Parses a date string into a pandas datetime object.
+
+        This function attempts to parse a date string in various formats 
+        ('%Y-%m-%d', '%Y-%m', '%Y'). If the date string is null or cannot 
+        be parsed, it returns pandas NaT (Not a Time).
+
+        Parameters:
+        date_str (str): The date string to be parsed.
+
+        Returns:
+        pd.Timestamp or pd.NaT: The parsed datetime object or NaT if parsing fails.
+        """
+        if pd.isnull(date_str):
+            return pd.NaT
+        # Remove any extra spaces
+        date_str = str(date_str).strip()
+        # List of formats to try, ordered from most specific to least specific
+        formats = ['%Y-%m-%d', '%Y-%m', '%Y']
+        for fmt in formats:
+            try:
+                return pd.to_datetime(date_str, format=fmt)
+            except ValueError:
+                continue
+        return pd.NaT
 
     def __init__(self) -> None:
         """
@@ -109,6 +136,10 @@ class MovieDataAnalyzer:
                     "movie_genres"
                 ], encoding="utf-8", on_bad_lines="skip")
                 self.movie_metadata = df  # Store as an attribute
+                self.movie_metadata['movie_release_date'] = \
+                    self.movie_metadata['movie_release_date'].apply(
+                        MovieDataAnalyzer.parse_release_date
+                    )
             elif file == "name.clusters.txt":
                 file_path = os.path.join(dir_path, file)
                 # Column names from README: 1. Name, 2. Actor ID
@@ -260,3 +291,49 @@ class MovieDataAnalyzer:
 
         return height_counts
 
+    def releases(self, genre: str = None) -> pd.DataFrame:
+        """
+        Calculate the number of movies released per year, optionally filtered by genre.
+
+        Args:
+            genre (str): Genre to filter by. Default is None.
+
+        Returns:
+            pd.DataFrame: DataFrame with columns "Year" and "Count" for the 
+            number of movies released per year.
+        """
+        # Check if genre is a string
+        if genre and not isinstance(genre, str):
+            raise TypeError("genre must be a string")
+
+        # Check if genre is a valid genre
+        if genre:
+            valid_genres = self.movie_metadata[
+                'movie_genres'].str.extractall(r'\"([^\"]+)\"')[0].unique()
+            if genre not in valid_genres:
+                raise ValueError("Invalid genre")
+
+        # Create new dataframe and extract the release year from the movie release date
+        releases = pd.DataFrame()
+        releases['movie_release_year'] = self.movie_metadata[
+            'movie_release_date'].dt.year.astype('Int64')
+
+        # Copy the movie genres column
+        releases['movie_genres'] = self.movie_metadata['movie_genres']
+
+        # Filter by genre if specified
+        if genre:
+            releases = releases[releases['movie_genres'].str.contains(genre)]
+
+        # Drop rows with missing release years
+        releases = releases.dropna(subset=['movie_release_year'])
+
+        # Count the number of movies released per year
+        releases = releases['movie_release_year'].value_counts().reset_index()
+        releases.columns = ['year', 'count']
+        releases = releases.sort_values(by='year')
+
+        # Sum all counts for all years
+        total = releases['count'].sum()
+        print(f"Total number of movies released: {total}")
+        return releases

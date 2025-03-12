@@ -1,7 +1,6 @@
 import streamlit as st
 import matplotlib.pyplot as plt
 import seaborn as sns
-import pandas as pd
 from movie_data_analysis import MovieDataAnalyzer  # Import your MovieDataAnalyzer class
 
 # Initialize the movie analysis module
