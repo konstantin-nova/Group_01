@@ -172,7 +172,7 @@ class MovieDataAnalyzer:
                 print(f"File {file} does not match any expected data file.")
         print("All files have been loaded as DataFrame attributes.")
 
-    def movie_type(self, N: int = 10) -> pd.DataFrame:
+    def movie_type(self, n: int = 10) -> pd.DataFrame:
         """
         Calculate the N most common types of movies and their counts.
 
@@ -184,9 +184,9 @@ class MovieDataAnalyzer:
             the top N movie types.
         """
         # Input validation
-        if not isinstance(N, int):
+        if not isinstance(n, int):
             raise TypeError("N must be an integer")
-        if N <= 0:
+        if n <= 0:
             raise ValueError("N must be a positive integer")
 
         # Split the movie genres into individual genres
@@ -199,7 +199,7 @@ class MovieDataAnalyzer:
         genres = genres.str.split(' ').str[-1]
 
         # Count the occurrences of each genre
-        genre_counts = genres.value_counts().head(N).reset_index()
+        genre_counts = genres.value_counts().head(n).reset_index()
         genre_counts.columns = ['movie_type', 'count']
 
         return genre_counts
