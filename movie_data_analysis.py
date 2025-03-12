@@ -20,6 +20,33 @@ import matplotlib.pyplot as plt
 
 class MovieDataAnalyzer:
     """Class for downloading and analyzing movie data."""
+    @staticmethod
+    def parse_date(date_str):
+        """
+        Parses a date string into a pandas datetime object.
+
+        This function attempts to parse a date string in various formats 
+        ('%Y-%m-%d', '%Y-%m', '%Y'). If the date string is null or cannot 
+        be parsed, it returns pandas NaT (Not a Time).
+
+        Parameters:
+        date_str (str): The date string to be parsed.
+
+        Returns:
+        pd.Timestamp or pd.NaT: The parsed datetime object or NaT if parsing fails.
+        """
+        if pd.isnull(date_str):
+            return pd.NaT
+        # Remove any extra spaces
+        date_str = str(date_str).strip()
+        # List of formats to try, ordered from most specific to least specific
+        formats = ['%Y-%m-%d', '%Y-%m', '%Y']
+        for fmt in formats:
+            try:
+                return pd.to_datetime(date_str, format=fmt)
+            except ValueError:
+                continue
+        return pd.NaT
 
     def __init__(self) -> None:
         """
@@ -91,6 +118,10 @@ class MovieDataAnalyzer:
                     "freebase_character_id", "freebase_actor_id"
                 ], encoding="utf-8", on_bad_lines="skip")
                 self.characters = df  # Store as an attribute
+                self.characters['actor_date_of_birth'] = \
+                    self.characters['actor_date_of_birth'].apply(
+                        MovieDataAnalyzer.parse_date
+                )
             elif file == "movie.metadata.tsv":
                 file_path = os.path.join(dir_path, file)
                 ###
@@ -109,6 +140,10 @@ class MovieDataAnalyzer:
                     "movie_genres"
                 ], encoding="utf-8", on_bad_lines="skip")
                 self.movie_metadata = df  # Store as an attribute
+                self.movie_metadata['movie_release_date'] = \
+                    self.movie_metadata['movie_release_date'].apply(
+                        MovieDataAnalyzer.parse_date
+                )
             elif file == "name.clusters.txt":
                 file_path = os.path.join(dir_path, file)
                 # Column names from README: 1. Name, 2. Actor ID
@@ -137,7 +172,7 @@ class MovieDataAnalyzer:
                 print(f"File {file} does not match any expected data file.")
         print("All files have been loaded as DataFrame attributes.")
 
-    def movie_type(self, N: int = 10) -> pd.DataFrame:
+    def movie_type(self, n: int = 10) -> pd.DataFrame:
         """
         Calculate the N most common types of movies and their counts.
 
@@ -149,9 +184,9 @@ class MovieDataAnalyzer:
             the top N movie types.
         """
         # Input validation
-        if not isinstance(N, int):
+        if not isinstance(n, int):
             raise TypeError("N must be an integer")
-        if N <= 0:
+        if n <= 0:
             raise ValueError("N must be a positive integer")
 
         # Split the movie genres into individual genres
@@ -164,7 +199,7 @@ class MovieDataAnalyzer:
         genres = genres.str.split(' ').str[-1]
 
         # Count the occurrences of each genre
-        genre_counts = genres.value_counts().head(N).reset_index()
+        genre_counts = genres.value_counts().head(n).reset_index()
         genre_counts.columns = ['movie_type', 'count']
 
         return genre_counts
@@ -233,7 +268,7 @@ class MovieDataAnalyzer:
         filtered_data = filtered_data[
             (filtered_data['actor_height'] <= max_height) &
             (filtered_data['actor_height'] >= min_height)
-            ]
+        ]
 
         # Drop missing values in the height column
         filtered_data = filtered_data.dropna(subset=['actor_height'])
@@ -260,3 +295,93 @@ class MovieDataAnalyzer:
 
         return height_counts
 
+    def releases(self, genre: str = None) -> pd.DataFrame:
+        """
+        Calculate the number of movies released per year, optionally filtered by genre.
+
+        Args:
+            genre (str): Genre to filter by. Default is None.
+
+        Returns:
+            pd.DataFrame: DataFrame with columns "Year" and "Count" for the 
+            number of movies released per year.
+        """
+        # Check if genre is a string
+        if genre and not isinstance(genre, str):
+            raise TypeError("genre must be a string")
+
+        # Check if genre is a valid genre
+        if genre:
+            valid_genres = self.movie_metadata[
+                'movie_genres'].str.extractall(r'\"([^\"]+)\"')[0].unique()
+            if genre not in valid_genres:
+                raise ValueError("Invalid genre")
+
+        # Create new dataframe and extract the release year from the movie release date
+        releases = pd.DataFrame()
+        releases['movie_release_year'] = self.movie_metadata[
+            'movie_release_date'].dt.year.astype('Int64')
+
+        # Copy the movie genres column
+        releases['movie_genres'] = self.movie_metadata['movie_genres']
+
+        # Filter by genre if specified
+        if genre:
+            releases = releases[releases['movie_genres'].str.contains(genre)]
+
+        # Drop rows with missing release years
+        releases = releases.dropna(subset=['movie_release_year'])
+
+        # Count the number of movies released per year
+        releases = releases['movie_release_year'].value_counts().reset_index()
+        releases.columns = ['year', 'count']
+        releases = releases.sort_values(by='year')
+
+        # Sum all counts for all years
+        total = releases['count'].sum()
+        print(f"Total number of movies released: {total}")
+        return releases
+
+    def ages(self, period: str = 'Y') -> pd.DataFrame:
+        """
+        Calculate the number of births per year or month.
+
+        Args:
+            period (str): 'Y' for year, 'M' for month. Default is 'Y'.
+
+        Returns:
+            pd.DataFrame: DataFrame with columns "Period" and "Count" for the 
+            number of births per year or month.
+        """
+        # Check if period is a correct value
+        if period not in ['Y', 'M']:
+            raise ValueError("period must be 'Y' for year or 'M' for month")
+
+        # Drop rows with missing actor date of birth
+        valid_births = self.characters.dropna(subset=['actor_date_of_birth'])
+
+        if period == 'Y':
+            # Extract the year from the date of birth
+            valid_births['birth_year'] = valid_births['actor_date_of_birth'].dt.year
+            # Remove invalid birth years
+            valid_births = valid_births[valid_births['birth_year'] < 2025]
+            # Count the number of births per year
+            birth_counts = valid_births['birth_year'].value_counts(
+            ).reset_index()
+            birth_counts.columns = ['period', 'count']
+            birth_counts = birth_counts.sort_values(by='period')
+        else:
+            # Extract the month from the date of birth
+            valid_births['birth_month'] = valid_births['actor_date_of_birth'].dt.month
+            # Count the number of births per month
+            birth_counts = valid_births['birth_month'].value_counts(
+            ).reset_index()
+            birth_counts.columns = ['period', 'count']
+            birth_counts = birth_counts.sort_values(by='period')
+            # Map period to month names
+            month_names = ['January', 'February', 'March', 'April', 'May', 'June',
+                           'July', 'August', 'September', 'October', 'November', 'December']
+            birth_counts['period'] = birth_counts['period'].map(
+                lambda x: month_names[x-1])
+
+        return birth_counts
