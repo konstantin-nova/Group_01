@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 class MovieDataAnalyzer:
     """Class for downloading and analyzing movie data."""
     @staticmethod
-    def parse_release_date(date_str):
+    def parse_date(date_str):
         """
         Parses a date string into a pandas datetime object.
 
@@ -118,6 +118,10 @@ class MovieDataAnalyzer:
                     "freebase_character_id", "freebase_actor_id"
                 ], encoding="utf-8", on_bad_lines="skip")
                 self.characters = df  # Store as an attribute
+                self.characters['actor_date_of_birth'] = \
+                    self.characters['actor_date_of_birth'].apply(
+                        MovieDataAnalyzer.parse_date
+                )
             elif file == "movie.metadata.tsv":
                 file_path = os.path.join(dir_path, file)
                 ###
@@ -138,8 +142,8 @@ class MovieDataAnalyzer:
                 self.movie_metadata = df  # Store as an attribute
                 self.movie_metadata['movie_release_date'] = \
                     self.movie_metadata['movie_release_date'].apply(
-                        MovieDataAnalyzer.parse_release_date
-                    )
+                        MovieDataAnalyzer.parse_date
+                )
             elif file == "name.clusters.txt":
                 file_path = os.path.join(dir_path, file)
                 # Column names from README: 1. Name, 2. Actor ID
@@ -264,7 +268,7 @@ class MovieDataAnalyzer:
         filtered_data = filtered_data[
             (filtered_data['actor_height'] <= max_height) &
             (filtered_data['actor_height'] >= min_height)
-            ]
+        ]
 
         # Drop missing values in the height column
         filtered_data = filtered_data.dropna(subset=['actor_height'])
@@ -337,3 +341,47 @@ class MovieDataAnalyzer:
         total = releases['count'].sum()
         print(f"Total number of movies released: {total}")
         return releases
+
+    def ages(self, period: str = 'Y') -> pd.DataFrame:
+        """
+        Calculate the number of births per year or month.
+
+        Args:
+            period (str): 'Y' for year, 'M' for month. Default is 'Y'.
+
+        Returns:
+            pd.DataFrame: DataFrame with columns "Period" and "Count" for the 
+            number of births per year or month.
+        """
+        # Check if period is a correct value
+        if period not in ['Y', 'M']:
+            raise ValueError("period must be 'Y' for year or 'M' for month")
+
+        # Drop rows with missing actor date of birth
+        valid_births = self.characters.dropna(subset=['actor_date_of_birth'])
+
+        if period == 'Y':
+            # Extract the year from the date of birth
+            valid_births['birth_year'] = valid_births['actor_date_of_birth'].dt.year
+            # Remove invalid birth years
+            valid_births = valid_births[valid_births['birth_year'] < 2025]
+            # Count the number of births per year
+            birth_counts = valid_births['birth_year'].value_counts(
+            ).reset_index()
+            birth_counts.columns = ['period', 'count']
+            birth_counts = birth_counts.sort_values(by='period')
+        else:
+            # Extract the month from the date of birth
+            valid_births['birth_month'] = valid_births['actor_date_of_birth'].dt.month
+            # Count the number of births per month
+            birth_counts = valid_births['birth_month'].value_counts(
+            ).reset_index()
+            birth_counts.columns = ['period', 'count']
+            birth_counts = birth_counts.sort_values(by='period')
+            # Map period to month names
+            month_names = ['January', 'February', 'March', 'April', 'May', 'June',
+                           'July', 'August', 'September', 'October', 'November', 'December']
+            birth_counts['period'] = birth_counts['period'].map(
+                lambda x: month_names[x-1])
+
+        return birth_counts

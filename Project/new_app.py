@@ -14,8 +14,8 @@ if page == "Main Page":
     # Streamlit App Title
     st.title("Movie Analysis Dashboard")
 
-    # Sidebar: Settings
-    st.sidebar.header("Settings")
+    # Sidebar: Input
+    st.sidebar.header("Input Parameters")
     N = st.sidebar.number_input("Select N for Top Movie Genres", min_value=1, max_value=10, value=5, key="genre_n")
 
     # Plot 1: Movie Genre Distribution
@@ -105,6 +105,9 @@ if page == "Main Page":
 if page == "Movie Release Info":
     st.title("Movie Release Information")
 
+    # Display Movie Releases Over Time
+    st.subheader("Movie Releases Over Time")
+
     # Input for genre selection
     selected_genre = st.text_input("Enter Genre")
 
@@ -125,6 +128,49 @@ if page == "Movie Release Info":
         st.pyplot(fig4)
     except Exception as e:
         st.error(f"Error processing chronological data: {e}")
+
+    # Display Actor birthdate distribution
+    st.subheader("Actor Birthdate Distribution")
+
+    # Input for time period selection from dropdown
+    selected_period = st.selectbox("Select Time Period", ["Year", "Month"])
+
+    try:
+        if selected_period == "Year":
+            selected_period = "Y"
+        else:
+            selected_period = "M"
+
+        # Get birthdate data
+        birthdate_data = analyzer.ages(selected_period)
+        # Dynamically change the number of bins based on the period
+        bins = birthdate_data['period'].nunique()
+
+        # Create a plot
+        fig5, ax5 = plt.subplots()
+        ax5.bar(birthdate_data['period'], birthdate_data['count'], color='salmon')
+
+        # Set labels and title
+        if selected_period == "Y":
+            ax5.set_xlabel("Birth Year")
+            ax5.set_title("Actor Birth Year Distribution")
+        else:   
+            ax5.set_xlabel("Birth Month")
+            ax5.set_title("Actor Birth Month Distribution")
+            ax5.set_ylim(0)
+            ax5.yaxis.set_major_locator(plt.MaxNLocator(integer=True))
+        ax5.set_ylabel("Frequency")
+
+        # Rotate x-axis labels for better readability
+        ax5.set_xticklabels(birthdate_data['period'], rotation=45, ha='right')
+
+        # Display plot in Streamlit
+        st.pyplot(fig5)
+
+        # Add note that actors whose birthmonth is unknown are counted shown in January
+        st.info("Note: Actors whose birth month is unknown are receive January as default.")
+    except Exception as e:
+        st.error(f"Error processing birthdate data: {e}")
 
 # Notes
 st.info("This app is built using the `MovieDataAnalyzer` class, loading and visualizing movie and character data.")
