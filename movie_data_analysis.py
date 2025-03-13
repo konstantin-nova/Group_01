@@ -158,7 +158,7 @@ class MovieDataAnalyzer:
                 ###
                 file_path = os.path.join(dir_path, file)
                 df = pd.read_csv(file_path, sep="\t",
-                                 names=["movie_id", "summary"],
+                                 names=["wikipedia_movie_id", "summary"],
                                  encoding="utf-8", on_bad_lines="skip")
                 self.plot_summaries = df  # Store as an attribute
             elif file == "tvtropes.clusters.txt":

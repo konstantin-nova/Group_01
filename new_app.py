@@ -33,13 +33,16 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 # Import your MovieDataAnalyzer class
 from movie_data_analysis import MovieDataAnalyzer
+from ollama import chat
+from ollama import ChatResponse
+
 
 # Initialize the movie analysis module
 analyzer = MovieDataAnalyzer()
 
 # Navigation to pages
 st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["Main Page", "Movie Release Info"])
+page = st.sidebar.radio("Go to", ["Main Page", "Chronological Info", "Classification"])
 
 if page == "Main Page":
     # Streamlit App Title
@@ -142,8 +145,8 @@ if page == "Main Page":
     st.dataframe(analyzer.characters.head())
 
 
-if page == "Movie Release Info":
-    st.title("Movie Release Information")
+if page == "Chronological Info":
+    st.title("Chronological Information about the Movies") 
 
     # Display Movie Releases Over Time
     st.subheader("Movie Releases Over Time")
@@ -212,6 +215,65 @@ if page == "Movie Release Info":
             "Note: Actors whose birth month is unknown are receive January as default.")
     except (KeyError, ValueError) as e:
         st.error(f"Error processing birthdate data: {e}")
+
+if page == "Classification":
+    st.title("Classification of Movies")
+
+    # Display Movie Classification
+    st.subheader("AI Movie Classification")
+
+    # Button to shuffle and get a random movie
+    if st.button("Shuffle"):
+        try:
+            # Get a random movie title and summary
+            random_movie = analyzer.movie_metadata.sample(1)
+            movie_title = random_movie['movie_name'].values[0]
+            
+            # Get the wikipedia movie id 
+            movie_id = random_movie['wikipedia_movie_id'].values[0]
+
+            # Get the plot summary 
+            movie_summary = analyzer.plot_summaries.loc[
+                analyzer.plot_summaries['wikipedia_movie_id'] == movie_id, 'summary']
+
+            if not movie_summary.empty:
+                movie_summary = movie_summary.values[0]
+            else:
+                movie_summary = "Summary not available."
+            
+            # Extract the genres from the movie data
+            movie_genres = random_movie['movie_genres'].str.extractall(r'\"([^\"]+)\"')[0].unique()
+
+            # Remove genre ids
+            movie_genres = [genre for genre in movie_genres if not genre.startswith('/m/')]
+
+            # Display the movie title
+            st.text_area("Movie Title and Summary", movie_title + "\n\n" + movie_summary)
+
+            # Display the genres from the database
+            st.text_area("Genres in Database:", ", ".join(movie_genres))
+
+            # Use a local LLM to classify the movie summary
+
+            # Prepare the prompt for the LLM
+            #PROMPT = f"Classify the following movie summary into genres:\n\n{movie_summary}\n\nGenres:"
+
+            # Initialize the model
+            #response: ChatResponse = chat(model='deepseek-r1:1.5B', messages=[
+             #   {
+              ##      'role': 'user',
+                #    'content': 'Why is the sky blue?',
+                 #   },
+                #])
+
+            # Get the classification from the LLM
+            #classified_genres = response.message.content
+
+            # Display the classified genres
+            #st.text_area("Classified Genres by LLM", classified_genres)
+        except Exception as e:
+            st.error(f"Error classifying movie: {e}")
+
 
 # Notes
 st.info("This app is built using the `MovieDataAnalyzer` class, "
