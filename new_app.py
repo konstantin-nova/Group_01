@@ -38,13 +38,16 @@ from haystack_integrations.components.generators.ollama import OllamaGenerator
 from movie_data_analysis import MovieDataAnalyzer
 
 
-
 # Initialize the movie analysis module
 analyzer = MovieDataAnalyzer()
 
+# Constants
+SUMMARY_NOT_AVAILABLE = "Summary not available."
+
 # Navigation to pages
 st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["Main Page", "Chronological Info", "Classification"])
+page = st.sidebar.radio(
+    "Go to", ["Main Page", "Chronological Info", "Classification"])
 
 if page == "Main Page":
     # Streamlit App Title
@@ -148,7 +151,7 @@ if page == "Main Page":
 
 
 if page == "Chronological Info":
-    st.title("Chronological Information about the Movies") 
+    st.title("Chronological Information about the Movies")
 
     # Display Movie Releases Over Time
     st.subheader("Movie Releases Over Time")
@@ -199,22 +202,26 @@ if page == "Chronological Info":
         if selected_period == "Y":
             ax5.set_xlabel("Birth Year")
             ax5.set_title("Actor Birth Year Distribution")
+            ax5.set_xlim(birthdate_data['period'].min(), birthdate_data['period'].max())
         else:
             ax5.set_xlabel("Birth Month")
             ax5.set_title("Actor Birth Month Distribution")
             ax5.set_ylim(0)
             ax5.yaxis.set_major_locator(plt.MaxNLocator(integer=True))
+            
+            # Rotate x-axis labels for better readability
+            ax5.set_xticklabels(birthdate_data['period'], rotation=45, ha='right')
+        
         ax5.set_ylabel("Frequency")
-
-        # Rotate x-axis labels for better readability
-        ax5.set_xticklabels(birthdate_data['period'], rotation=45, ha='right')
 
         # Display plot in Streamlit
         st.pyplot(fig5)
 
         # Add note that actors whose birthmonth is unknown are counted shown in January
-        st.info(
-            "Note: Actors whose birth month is unknown are receive January as default.")
+        if selected_period == "M":
+            st.info(
+                "Note: Actors with unknown birth months are shown in January by default.")
+
     except (KeyError, ValueError) as e:
         st.error(f"Error processing birthdate data: {e}")
 
@@ -230,27 +237,30 @@ if page == "Classification":
             # Get a random movie title and summary
             random_movie = analyzer.movie_metadata.sample(1)
             movie_title = random_movie['movie_name'].values[0]
-            
-            # Get the wikipedia movie id 
+
+            # Get the wikipedia movie id
             movie_id = random_movie['wikipedia_movie_id'].values[0]
 
-            # Get the plot summary 
+            # Get the plot summary
             movie_summary = analyzer.plot_summaries.loc[
                 analyzer.plot_summaries['wikipedia_movie_id'] == movie_id, 'summary']
 
             if not movie_summary.empty:
                 movie_summary = movie_summary.values[0]
             else:
-                movie_summary = "Summary not available."
-            
+                movie_summary = SUMMARY_NOT_AVAILABLE
+
             # Extract the genres from the movie data
-            movie_genres = random_movie['movie_genres'].str.extractall(r'\"([^\"]+)\"')[0].unique()
+            movie_genres = random_movie['movie_genres'].str.extractall(
+                r'\"([^\"]+)\"')[0].unique()
 
             # Remove genre ids
-            movie_genres = [genre for genre in movie_genres if not genre.startswith('/m/')]
+            movie_genres = [
+                genre for genre in movie_genres if not genre.startswith('/m/')]
 
             # Display the movie title
-            st.text_area("Movie Title and Summary", movie_title + "\n\n" + movie_summary)
+            st.text_area("Movie Title and Summary",
+                         movie_title + "\n\n" + movie_summary)
 
             # Display the genres from the database
             st.text_area("Genres in Database:", ", ".join(movie_genres))
@@ -258,14 +268,15 @@ if page == "Classification":
             # Use a local LLM to classify the movie summary
 
             # Prepare the prompt for the LLM
-            prompt = """
+            PROMPT = """
             Given only the following information, answer the question.
             Classify the genres of the movie based on the title and the
             following plot summary. Look for key words in the summary.
             You can classify multiple genres.\n
             ONLY print the names of Genres, separated by commas.\n
             Do not include any other information in the response.\n
-            if the movie summary is not available, write 'Classification not possible'.\n
+            if the movie summary is not available, write 'Classification not possible'
+            and DO NOT predict any genres.\n
             Example output: Action, Adventure, Comedy\n
             
             Movie: {{movie_title}}
@@ -274,74 +285,82 @@ if page == "Classification":
 
             # Initialize pipeline
             pipe = Pipeline()
-            pipe.add_component("prompt_builder", PromptBuilder(template=prompt, required_variables=["movie_title", "movie_summary"]))
-            pipe.add_component("llm", OllamaGenerator(model="deepseek-r1:1.5B"))
+            pipe.add_component("prompt_builder", PromptBuilder(
+                template=PROMPT, required_variables=["movie_title", "movie_summary"]))
+            pipe.add_component("llm", OllamaGenerator(
+                model="deepseek-r1:1.5B"))
 
             # Connect the components
             pipe.connect("prompt_builder", "llm")
 
             # Run the pipeline
             response = pipe.run({"prompt_builder": {
-                                    "movie_title": movie_title,
-                                    "movie_summary": movie_summary
-                                    }
-                                })
-            
+                "movie_title": movie_title,
+                "movie_summary": movie_summary
+            }
+            })
+
             # Extract the classified genres
             classified_genres = response["llm"]["replies"][0]
 
             # Display the classified genres
             if "<think>" in classified_genres:
-                classified_genres = re.sub(r"<think>.*?</think>\s*", "", classified_genres, flags=re.DOTALL)
+                classified_genres = re.sub(
+                    r"<think>.*?</think>\s*", "", classified_genres, flags=re.DOTALL)
 
             # Display the classified genres
             st.text_area("Classified Genres by LLM", classified_genres)
 
             # Create follow-up question
             # Follow up prompt
-            followup_prompt = """
+            FOLLOWUP_PROMPT = """
             Given only the following information, answer the question.
             Was your classification of the genres correct? 
             Your classification: {{classified_genres}}
             Actual genres: {{actual_genres}}
 
             ONLY give one of the following responses, Nothing else.
-            If at least one classifed genre is in the actual genres, write 
-            'I correctly classified one or more genres'.
-
-            If none of the classified genres are in the actual genres, write
-            'I did not correctly classify any genres'.
-
             If the actual genres state that classification was not possible, write
             'Classification was not possible'.
+
+            If at least one classifed genre EXACTLY matches a genre in the 
+            actual genres, write 
+            'I correctly classified one or more genres'.
+
+            If none of the classified genres matches the actual genres, write
+            'I did not correctly classify any genres'.
 
             ONLY write the above responses. Do not include any other information.
             """
 
             # Initialize the follow-up pipeline
             pipe_followup = Pipeline()
-            pipe_followup.add_component("followup_prompt_builder", PromptBuilder(template=followup_prompt, required_variables=["classified_genres", "actual_genres"]))
-            pipe_followup.add_component("llm", OllamaGenerator(model="deepseek-r1:1.5B"))
+            pipe_followup.add_component("followup_prompt_builder", PromptBuilder(
+                template=FOLLOWUP_PROMPT, required_variables=["classified_genres",
+                                                              "actual_genres"]))
+            pipe_followup.add_component(
+                "llm", OllamaGenerator(model="deepseek-r1:1.5B"))
             pipe_followup.connect("followup_prompt_builder", "llm")
 
             # Run the follow-up pipeline
             followup_response = pipe_followup.run({
                 "followup_prompt_builder": {
                     "classified_genres": classified_genres,
-                    "actual_genres":movie_genres
+                    "actual_genres": movie_genres
                 }
             })
-            
+
             # Extract the response
             evaluation = followup_response["llm"]["replies"][0]
 
             # If response contains <think> tags, clean up the respons
             if "<think>" in evaluation:
-                evaluation = re.sub(r"<think>.*?</think>\s*", "", evaluation, flags=re.DOTALL)
+                evaluation = re.sub(r"<think>.*?</think>\s*",
+                                    "", evaluation, flags=re.DOTALL)
 
             # Display the evaluation
             st.text_area("Evaluation", evaluation)
-        except Exception as e:
+        except (KeyError, ValueError, RuntimeError) as e:
             st.error(f"Error classifying movie: {e}")
 
 

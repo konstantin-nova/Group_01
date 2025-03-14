@@ -13,6 +13,7 @@ datasets by:
 
 import os
 import tarfile
+from typing import Optional, Union
 import requests
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -21,7 +22,7 @@ import matplotlib.pyplot as plt
 class MovieDataAnalyzer:
     """Class for downloading and analyzing movie data."""
     @staticmethod
-    def parse_date(date_str):
+    def parse_date(date_str: Union[str, float, None]) -> pd.Timestamp:
         """
         Parses a date string into a pandas datetime object.
 
@@ -92,6 +93,13 @@ class MovieDataAnalyzer:
             print("Extraction complete.")
         else:
             print(f"File {os.path.basename(dir_path)} already exists.")
+
+        # Instantiate dataframe attributes
+        self.characters = pd.DataFrame()
+        self.movie_metadata = pd.DataFrame()
+        self.name_clusters = pd.DataFrame()
+        self.plot_summaries = pd.DataFrame()
+        self.tvtropes_clusters = pd.DataFrame()
 
         # Read each TSV file and create a DataFrame
         for file in os.listdir(dir_path):
@@ -174,20 +182,20 @@ class MovieDataAnalyzer:
 
     def movie_type(self, n: int = 10) -> pd.DataFrame:
         """
-        Calculate the N most common types of movies and their counts.
+        Calculate the n most common types of movies and their counts.
 
         Args:
-            N (int): Number of top movie types to return. Default is 10.
+            n (int): Number of top movie types to return. Default is 10.
 
         Returns:
             pd.DataFrame: DataFrame with columns "Movie_Type" and "Count" for
-            the top N movie types.
+            the top n movie types.
         """
         # Input validation
         if not isinstance(n, int):
-            raise TypeError("N must be an integer")
+            raise TypeError("n must be an integer")
         if n <= 0:
-            raise ValueError("N must be a positive integer")
+            raise ValueError("n must be a positive integer")
 
         # Split the movie genres into individual genres
         genres = self.movie_metadata['movie_genres'].str.split(',').explode()
@@ -295,12 +303,12 @@ class MovieDataAnalyzer:
 
         return height_counts
 
-    def releases(self, genre: str = None) -> pd.DataFrame:
+    def releases(self, genre: Optional[str] = None) -> pd.DataFrame:
         """
         Calculate the number of movies released per year, optionally filtered by genre.
 
         Args:
-            genre (str): Genre to filter by. Default is None.
+            genre (str, optional): Genre to filter by. Default is None.
 
         Returns:
             pd.DataFrame: DataFrame with columns "Year" and "Count" for the 
