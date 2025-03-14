@@ -56,7 +56,7 @@ if page == "Main Page":
     # Sidebar: Input
     st.sidebar.header("Input Parameters")
     n = st.sidebar.number_input(
-        "Select n for Top Movie Genres", min_value=1, max_value=10, value=5, key="genre_n")
+        "Select n for Top Movie Genres", min_value=1, max_value=50, value=5, key="genre_n")
 
     # Plot 1: Movie Genre Distribution
     st.subheader("Movie Genre Distribution")
@@ -140,15 +140,6 @@ if page == "Main Page":
         st.pyplot(fig3)
     except (KeyError, ValueError) as e:
         st.error(f"Error processing actor height data: {e}")
-
-    # Data Previews
-    st.subheader("Data Previews")
-    st.write("Movie Metadata:")
-    st.dataframe(analyzer.movie_metadata.head())
-
-    st.write("Character Metadata:")
-    st.dataframe(analyzer.characters.head())
-
 
 if page == "Chronological Info":
     st.title("Chronological Information about the Movies")
@@ -362,8 +353,3 @@ if page == "Classification":
             st.text_area("Evaluation", evaluation)
         except (KeyError, ValueError, RuntimeError) as e:
             st.error(f"Error classifying movie: {e}")
-
-
-# Notes
-st.info("This app is built using the `MovieDataAnalyzer` class, "
-        "loading and visualizing movie and character data.")
