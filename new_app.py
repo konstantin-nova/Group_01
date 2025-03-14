@@ -28,13 +28,15 @@ Note:
     visualizing movie and character data.
 """
 
+import re
 import streamlit as st
 import matplotlib.pyplot as plt
 import seaborn as sns
-# Import your MovieDataAnalyzer class
+from haystack import Pipeline
+from haystack.components.builders.prompt_builder import PromptBuilder
+from haystack_integrations.components.generators.ollama import OllamaGenerator
 from movie_data_analysis import MovieDataAnalyzer
-from ollama import chat
-from ollama import ChatResponse
+
 
 
 # Initialize the movie analysis module
@@ -256,21 +258,89 @@ if page == "Classification":
             # Use a local LLM to classify the movie summary
 
             # Prepare the prompt for the LLM
-            #PROMPT = f"Classify the following movie summary into genres:\n\n{movie_summary}\n\nGenres:"
+            prompt = """
+            Given only the following information, answer the question.
+            Classify the genres of the movie based on the title and the
+            following plot summary. Look for key words in the summary.
+            You can classify multiple genres.\n
+            ONLY print the names of Genres, separated by commas.\n
+            Do not include any other information in the response.\n
+            if the movie summary is not available, write 'Classification not possible'.\n
+            Example output: Action, Adventure, Comedy\n
+            
+            Movie: {{movie_title}}
+            Summary: {{movie_summary}}
+            """
 
-            # Initialize the model
-            #response: ChatResponse = chat(model='deepseek-r1:1.5B', messages=[
-             #   {
-              ##      'role': 'user',
-                #    'content': 'Why is the sky blue?',
-                 #   },
-                #])
+            # Initialize pipeline
+            pipe = Pipeline()
+            pipe.add_component("prompt_builder", PromptBuilder(template=prompt, required_variables=["movie_title", "movie_summary"]))
+            pipe.add_component("llm", OllamaGenerator(model="deepseek-r1:1.5B"))
 
-            # Get the classification from the LLM
-            #classified_genres = response.message.content
+            # Connect the components
+            pipe.connect("prompt_builder", "llm")
+
+            # Run the pipeline
+            response = pipe.run({"prompt_builder": {
+                                    "movie_title": movie_title,
+                                    "movie_summary": movie_summary
+                                    }
+                                })
+            
+            # Extract the classified genres
+            classified_genres = response["llm"]["replies"][0]
 
             # Display the classified genres
-            #st.text_area("Classified Genres by LLM", classified_genres)
+            if "<think>" in classified_genres:
+                classified_genres = re.sub(r"<think>.*?</think>\s*", "", classified_genres, flags=re.DOTALL)
+
+            # Display the classified genres
+            st.text_area("Classified Genres by LLM", classified_genres)
+
+            # Create follow-up question
+            # Follow up prompt
+            followup_prompt = """
+            Given only the following information, answer the question.
+            Was your classification of the genres correct? 
+            Your classification: {{classified_genres}}
+            Actual genres: {{actual_genres}}
+
+            ONLY give one of the following responses, Nothing else.
+            If at least one classifed genre is in the actual genres, write 
+            'I correctly classified one or more genres'.
+
+            If none of the classified genres are in the actual genres, write
+            'I did not correctly classify any genres'.
+
+            If the actual genres state that classification was not possible, write
+            'Classification was not possible'.
+
+            ONLY write the above responses. Do not include any other information.
+            """
+
+            # Initialize the follow-up pipeline
+            pipe_followup = Pipeline()
+            pipe_followup.add_component("followup_prompt_builder", PromptBuilder(template=followup_prompt, required_variables=["classified_genres", "actual_genres"]))
+            pipe_followup.add_component("llm", OllamaGenerator(model="deepseek-r1:1.5B"))
+            pipe_followup.connect("followup_prompt_builder", "llm")
+
+            # Run the follow-up pipeline
+            followup_response = pipe_followup.run({
+                "followup_prompt_builder": {
+                    "classified_genres": classified_genres,
+                    "actual_genres":movie_genres
+                }
+            })
+            
+            # Extract the response
+            evaluation = followup_response["llm"]["replies"][0]
+
+            # If response contains <think> tags, clean up the respons
+            if "<think>" in evaluation:
+                evaluation = re.sub(r"<think>.*?</think>\s*", "", evaluation, flags=re.DOTALL)
+
+            # Display the evaluation
+            st.text_area("Evaluation", evaluation)
         except Exception as e:
             st.error(f"Error classifying movie: {e}")
 
