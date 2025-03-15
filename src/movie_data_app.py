@@ -41,9 +41,6 @@ from movie_data_analysis import MovieDataAnalyzer
 # Initialize the movie analysis module
 analyzer = MovieDataAnalyzer()
 
-# Constants
-SUMMARY_NOT_AVAILABLE = "Summary not available."
-
 # Navigation to pages
 st.sidebar.title("Navigation")
 page = st.sidebar.radio(
@@ -199,10 +196,10 @@ if page == "Chronological Info":
             ax5.set_title("Actor Birth Month Distribution")
             ax5.set_ylim(0)
             ax5.yaxis.set_major_locator(plt.MaxNLocator(integer=True))
-            
+
             # Rotate x-axis labels for better readability
             ax5.set_xticklabels(birthdate_data['period'], rotation=45, ha='right')
-        
+
         ax5.set_ylabel("Frequency")
 
         # Display plot in Streamlit
@@ -237,9 +234,9 @@ if page == "Classification":
                 analyzer.plot_summaries['wikipedia_movie_id'] == movie_id, 'summary']
 
             if not movie_summary.empty:
-                movie_summary = movie_summary.values[0]
+                MOVIE_SUMMARY = movie_summary.values[0]
             else:
-                movie_summary = SUMMARY_NOT_AVAILABLE
+                MOVIE_SUMMARY = "Summary not available."
 
             # Extract the genres from the movie data
             movie_genres = random_movie['movie_genres'].str.extractall(
@@ -251,7 +248,7 @@ if page == "Classification":
 
             # Display the movie title
             st.text_area("Movie Title and Summary",
-                         movie_title + "\n\n" + movie_summary)
+                         movie_title + "\n\n" + MOVIE_SUMMARY)
 
             # Display the genres from the database
             st.text_area("Genres in Database:", ", ".join(movie_genres))
@@ -262,15 +259,13 @@ if page == "Classification":
             PROMPT = """
             Given only the following information, answer the question.
             Classify the genres of the movie based on the title and the
-            following plot summary. Look for key words in the summary.
+            summary.
             You can classify multiple genres.\n
             ONLY print the names of Genres, separated by commas.\n
-            Do not include any other information in the response.\n
-            if the movie summary is not available, write 'Classification not possible'
-            and DO NOT predict any genres.\n
+            Do not include any other information in the response.\n\n
             Example output: Action, Adventure, Comedy\n
             
-            Movie: {{movie_title}}
+            Title: {{movie_title}}
             Summary: {{movie_summary}}
             """
 
@@ -306,22 +301,20 @@ if page == "Classification":
             # Follow up prompt
             FOLLOWUP_PROMPT = """
             Given only the following information, answer the question.
-            Was your classification of the genres correct? 
-            Your classification: {{classified_genres}}
-            Actual genres: {{actual_genres}}
+            Does one of the classified genres match at least one of the actual
+            genres of the movie?
+            Your classification: {{classified_genres}}\n
+            Actual genres: {{actual_genres}}\n
 
-            ONLY give one of the following responses, Nothing else.
-            If the actual genres state that classification was not possible, write
-            'Classification was not possible'.
+            ONLY write the one of the following responses. 
+            Your response should not contain any other information.\n\n
 
             If at least one classifed genre EXACTLY matches a genre in the 
-            actual genres, write 
-            'I correctly classified one or more genres'.
+            actual genres, write:\n 
+            'I correctly classified one or more genres'.\n\n
 
-            If none of the classified genres matches the actual genres, write
+            If none of the classified genres matches the actual genres, write:\n
             'I did not correctly classify any genres'.
-
-            ONLY write the above responses. Do not include any other information.
             """
 
             # Initialize the follow-up pipeline

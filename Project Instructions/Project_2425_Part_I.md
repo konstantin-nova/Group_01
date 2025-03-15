@@ -29,7 +29,7 @@ Keep all the .py and .ipynb out of the main directory. The only files in the mai
 - One of you will create a github repository (it does not matter who). __THE NAME OF THE REPOSITORY MUST BE "Group_XX" where XX is the number of your group! If you are group 3, then XX must be 03. Always use two digits and an underscore!__
 - Initialize the repo with a README.md file, a proper license, and a .gitignore for the programming language you will use. The README.md file __MUST__ have your emails in a way that it is possible to copy and paste it into an email.
 - The one who created the repository will then give __Maintainer__ permissions to the rest of the group. Check under "Project Information" > "Members".
-- [ ] Every element of the group clones the repository to their own laptops.
+- [x] Every element of the group clones the repository to their own laptops.
 
 ### Day 1, Phase 2
 
@@ -52,7 +52,7 @@ Make your calls compliant with __pydantic__ and __static type checking__ when ap
 
 ### Day 1, Phase 4
 
-- [ ] Make a Streamlit App where you import your __Class__ and plot the contents of each method in a plot.
+- [x] Make a Streamlit App where you import your __Class__ and plot the contents of each method in a plot.
         * It should plot an histogram of the __movie_type__ method and the app must have a field where to select the value of N.
         * It should plot a second histogram with the result of method __actor_count__.
         * It should plot the distribution or distributions of the third method. Add a dropdown to select "gender" and two input fields for the heights in the app. 

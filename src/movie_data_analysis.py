@@ -26,15 +26,15 @@ class MovieDataAnalyzer:
         """
         Parses a date string into a pandas datetime object.
 
-        This function attempts to parse a date string in various formats 
-        ('%Y-%m-%d', '%Y-%m', '%Y'). If the date string is null or cannot 
+        This function attempts to parse a date string in various formats
+        ('%Y-%m-%d', '%Y-%m', '%Y'). If the date string is null or cannot
         be parsed, it returns pandas NaT (Not a Time).
 
         Parameters:
         date_str (str): The date string to be parsed.
 
         Returns:
-        pd.Timestamp or pd.NaT: The parsed datetime object or NaT if parsing fails.
+        pd.Timestamp or pd.NaT: The datetime object or NaT if parsing fails.
         """
         if pd.isnull(date_str):
             return pd.NaT
@@ -200,7 +200,7 @@ class MovieDataAnalyzer:
         # Split the movie genres into individual genres
         genres = self.movie_metadata['movie_genres'].str.split(',').explode()
 
-        # Remove parentheses, quotes and unnecessary whitespaces from the genre names
+        # Extract genres from the Freebase ID:name tuples
         genres = genres.str.replace(r'["{},]', '', regex=True).str.strip()
 
         # Split at space to extract the genre name
@@ -305,13 +305,14 @@ class MovieDataAnalyzer:
 
     def releases(self, genre: Optional[str] = None) -> pd.DataFrame:
         """
-        Calculate the number of movies released per year, optionally filtered by genre.
+        Calculate the number of movies released per year,
+        optionally filtered by genre.
 
         Args:
             genre (str, optional): Genre to filter by. Default is None.
 
         Returns:
-            pd.DataFrame: DataFrame with columns "Year" and "Count" for the 
+            pd.DataFrame: DataFrame with columns "Year" and "Count" for the
             number of movies released per year.
         """
         # Check if genre is a string
@@ -325,7 +326,7 @@ class MovieDataAnalyzer:
             if genre not in valid_genres:
                 raise ValueError("Invalid genre")
 
-        # Create new dataframe and extract the release year from the movie release date
+        # Create dataframe and extract the release year from the release date
         releases = pd.DataFrame()
         releases['movie_release_year'] = self.movie_metadata[
             'movie_release_date'].dt.year.astype('Int64')
@@ -358,7 +359,7 @@ class MovieDataAnalyzer:
             period (str): 'Y' for year, 'M' for month. Default is 'Y'.
 
         Returns:
-            pd.DataFrame: DataFrame with columns "Period" and "Count" for the 
+            pd.DataFrame: DataFrame with columns "Period" and "Count" for the
             number of births per year or month.
         """
         # Check if period is a correct value
@@ -370,7 +371,8 @@ class MovieDataAnalyzer:
 
         if period == 'Y':
             # Extract the year from the date of birth
-            valid_births['birth_year'] = valid_births['actor_date_of_birth'].dt.year
+            valid_births['birth_year'] = valid_births[
+                                            'actor_date_of_birth'].dt.year
             # Remove invalid birth years
             valid_births = valid_births[valid_births['birth_year'] < 2025]
             # Count the number of births per year
@@ -380,15 +382,17 @@ class MovieDataAnalyzer:
             birth_counts = birth_counts.sort_values(by='period')
         else:
             # Extract the month from the date of birth
-            valid_births['birth_month'] = valid_births['actor_date_of_birth'].dt.month
+            valid_births['birth_month'] = valid_births[
+                                            'actor_date_of_birth'].dt.month
             # Count the number of births per month
             birth_counts = valid_births['birth_month'].value_counts(
             ).reset_index()
             birth_counts.columns = ['period', 'count']
             birth_counts = birth_counts.sort_values(by='period')
             # Map period to month names
-            month_names = ['January', 'February', 'March', 'April', 'May', 'June',
-                           'July', 'August', 'September', 'October', 'November', 'December']
+            month_names = ['January', 'February', 'March', 'April', 'May',
+                           'June', 'July', 'August', 'September', 'October',
+                           'November', 'December']
             birth_counts['period'] = birth_counts['period'].map(
                 lambda x: month_names[x-1])
 

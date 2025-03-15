@@ -31,53 +31,53 @@ analyzer = MovieDataAnalyzer()
 # Test Error Handling
 def test_movie_type_invalid_n():
     """
-    Test that the movie_type function raises a TypeError when the parameter N
+    Test that the movie_type function raises a TypeError when the parameter n
     is given an invalid type (string instead of integer).
 
     This test uses pytest to check that the function correctly handles invalid
     input by raising the appropriate exception.
 
     Raises:
-        TypeError: If the parameter N is not of the expected type.
+        TypeError: If the parameter n is not of the expected type.
     """
     with pytest.raises(TypeError):
-        analyzer.movie_type(N="ten")
+        analyzer.movie_type(n="ten")
 
 def test_movie_type_negative_value():
     """
     Test that the movie_type method raises a ValueError when passed a negative value.
 
     This test ensures that the movie_type method in the analyzer object correctly
-    handles invalid input by raising a ValueError when the parameter N is negative.
+    handles invalid input by raising a ValueError when the parameter n is negative.
     """
     with pytest.raises(ValueError):
-        analyzer.movie_type(N=-1)
+        analyzer.movie_type(n=-1)
 
 def test_movie_type_zero_value():
     """
-    Test that the movie_type method raises a ValueError when called with N=0.
+    Test that the movie_type method raises a ValueError when called with n=0.
 
     This test ensures that the movie_type method in the analyzer object correctly
-    handles the case where the input value N is zero, which is expected to raise
+    handles the case where the input value n is zero, which is expected to raise
     a ValueError.
 
     Raises:
-        ValueError: If the input value N is zero.
+        ValueError: If the input value n is zero.
     """
     with pytest.raises(ValueError):
-        analyzer.movie_type(N=0)
+        analyzer.movie_type(n=0)
 
 def test_movie_type_large_value():
     """
-    Test the movie_type function with a large value for N.
+    Test the movie_type function with a large value for n.
 
     This test checks if the 'movie_type' key is present in the result
-    when the movie_type function is called with N=1000.
+    when the movie_type function is called with n=1000.
 
     Raises:
         AssertionError: If 'movie_type' is not found in the result.
     """
-    result = analyzer.movie_type(N=1000)
+    result = analyzer.movie_type(n=1000)
     assert 'movie_type' in result
 
 def test_actor_distributions_invalid_gender():
@@ -146,14 +146,14 @@ def test_movie_type():
     Test the movie_type function from the analyzer module.
 
     This test checks if the movie_type function returns the correct movie type
-    for a given input. Specifically, it verifies that when N=1, the function
+    for a given input. Specifically, it verifies that when n=1, the function
     returns a dictionary where the 'movie_type' key corresponds to the value
     '"/m/07s9rl0": "Drama"'.
 
     Raises:
         AssertionError: If the returned movie type does not match the expected value.
     """
-    result = analyzer.movie_type(N=10)
+    result = analyzer.movie_type(n=10)
     assert any("Drama" in movie for movie in result['movie_type'])
 
 def test_actor_distributions():
