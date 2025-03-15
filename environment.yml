@@ -1,0 +1,26 @@
+name: adpro
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12
+  - numpy
+  - pandas
+  - scikit-learn
+  - matplotlib
+  - seaborn
+  - requests
+  - pip
+  - pytest
+  - pylint
+  - ipython
+  - jupyterlab
+  - tarfile
+  - pip:
+      - streamlit
+      - haystack-ai
+      - requests-cache
+      - openai
+      - transformers
+      - ollama
+      - ollama-haystack
