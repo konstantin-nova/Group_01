@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 class MovieDataAnalyzer:
     """Class for downloading and analyzing movie data."""
     @staticmethod
-    def parse_date(date_str: Union[str, float, None]) -> pd.Timestamp:
+    def parse_date(date_str: Union[str, float, None]) -> Optional[pd.Timestamp]:
         """
         Parses a date string into a pandas datetime object.
 
@@ -47,7 +47,7 @@ class MovieDataAnalyzer:
                 return pd.to_datetime(date_str, format=fmt)
             except ValueError:
                 continue
-        return pd.NaT
+        return None
 
     def __init__(self) -> None:
         """
@@ -56,8 +56,15 @@ class MovieDataAnalyzer:
         Args:
             url: URL of the data file to download
         """
+        # Instantiate dataframe attributes
+        self.characters: pd.DataFrame = pd.DataFrame()
+        self.movie_metadata: pd.DataFrame = pd.DataFrame()
+        self.name_clusters: pd.DataFrame = pd.DataFrame()
+        self.plot_summaries: pd.DataFrame = pd.DataFrame()
+        self.tvtropes_clusters: pd.DataFrame = pd.DataFrame()
+
         # Set the data URL
-        url = 'http://www.cs.cmu.edu/~ark/personas/data/MovieSummaries.tar.gz'
+        URL = 'http://www.cs.cmu.edu/~ark/personas/data/MovieSummaries.tar.gz'
 
         # Set the download directory
         download_dir = '../downloads'
@@ -70,13 +77,13 @@ class MovieDataAnalyzer:
             print(f"Download directory already exists: {download_dir}")
 
         # Download if file does not exist in the download directory
-        tar_file_name = os.path.basename(url)  # Extract file name from URL
+        tar_file_name = os.path.basename(URL)  # Extract file name from URL
         tar_path = os.path.join(download_dir, tar_file_name)
         file_name = os.path.splitext(os.path.splitext(tar_file_name)[0])[0]
         dir_path = os.path.join(download_dir, file_name)
         if not os.path.exists(dir_path):
             # Download the file
-            response = requests.get(url, stream=True, timeout=30)
+            response = requests.get(URL, stream=True, timeout=30)
             response.raise_for_status()
             print(f"Downloading {tar_file_name}...")
 
@@ -93,13 +100,6 @@ class MovieDataAnalyzer:
             print("Extraction complete.")
         else:
             print(f"File {os.path.basename(dir_path)} already exists.")
-
-        # Instantiate dataframe attributes
-        self.characters = pd.DataFrame()
-        self.movie_metadata = pd.DataFrame()
-        self.name_clusters = pd.DataFrame()
-        self.plot_summaries = pd.DataFrame()
-        self.tvtropes_clusters = pd.DataFrame()
 
         # Read each TSV file and create a DataFrame
         for file in os.listdir(dir_path):
@@ -198,13 +198,16 @@ class MovieDataAnalyzer:
             raise ValueError("n must be a positive integer")
 
         # Split the movie genres into individual genres
-        genres = self.movie_metadata['movie_genres'].str.split(',').explode()
-
+        genres: pd.Series = self.movie_metadata['movie_genres'].str.split(',').explode()
+        
         # Extract genres from the Freebase ID:name tuples
         genres = genres.str.replace(r'["{},]', '', regex=True).str.strip()
 
         # Split at space to extract the genre name
         genres = genres.str.split(' ').str[-1]
+
+        # Transform the genre names to title case
+        genres = genres.str.title()
 
         # Count the occurrences of each genre
         genre_counts = genres.value_counts().head(n).reset_index()
