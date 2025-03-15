@@ -35,7 +35,12 @@ import seaborn as sns
 from haystack import Pipeline
 from haystack.components.builders.prompt_builder import PromptBuilder
 from haystack_integrations.components.generators.ollama import OllamaGenerator
-from movie_data_analysis import MovieDataAnalyzer
+from movie_data_analysis import (
+    MovieDataAnalyzer,
+    MovieTypeRequest,
+    ActorFilter,
+    GenreFilter
+)
 
 
 # Initialize the movie analysis module
@@ -50,18 +55,16 @@ if page == "Main Page":
     # Streamlit App Title
     st.title("Movie Analysis Dashboard")
 
-    # Sidebar: Input
-    st.sidebar.header("Input Parameters")
-    n = st.sidebar.number_input(
-        "Select n for Top Movie Genres",
-        min_value=1, max_value=50, value=5,
-        key="genre_n")
-
     # Plot 1: Movie Genre Distribution
     st.subheader("Movie Genre Distribution")
     try:
+        n = st.number_input("Select number of Genres",
+                            min_value=1, max_value=50, value=5,
+                            key="genre_n")
+
+        movie_type_request = MovieTypeRequest(n=n)
         # Get the top n movie genres from the analyzer
-        genre_counts = analyzer.movie_type(n)
+        genre_counts = analyzer.movie_type(movie_type_request)
 
         # Create a plot
         fig1, ax1 = plt.subplots()
@@ -124,9 +127,11 @@ if page == "Main Page":
         max_height = st.number_input(
             "Max Height (meters)", min_value=1.0, max_value=2.5, value=2.0)
 
+        actor_filter = ActorFilter(gender=gender,
+                                   max_height=max_height,
+                                   min_height=min_height)
         # Use the actor_distributions method
-        height_counts = analyzer.actor_distributions(
-            gender=gender, max_height=max_height, min_height=min_height)
+        height_counts = analyzer.actor_distributions(actor_filter)
 
         fig3, ax3 = plt.subplots()
         sns.histplot(data=height_counts, x='height', weights='count',
@@ -148,8 +153,9 @@ if page == "Chronological Info":
     selected_genre = st.text_input("Enter Genre")
 
     try:
+        genre_filter = GenreFilter(genre=selected_genre)
         # Get chronological data for the selected genre
-        data = analyzer.releases(selected_genre)
+        data = analyzer.releases(genre_filter=genre_filter)
 
         # Create a bar plot
         fig4, ax4 = plt.subplots()

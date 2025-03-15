@@ -17,12 +17,48 @@ from typing import Optional, Union
 import requests
 import pandas as pd
 import matplotlib.pyplot as plt
+from pydantic import BaseModel, PositiveInt, Field
+
+
+class MovieTypeRequest(BaseModel):
+    """
+    Pydantic model for validating the request
+    parameters for the movie_type method.
+    """
+    n: PositiveInt = 10  # Ensures n is a positive int with default value 10
+
+
+class ActorFilter(BaseModel):
+    """
+    Pydantic model for validating the request
+    parameters for the actor_distributions method.
+    """
+    gender: str
+    max_height: float = Field(gt=0, lt=3.0)  # Using Field for validation
+    min_height: float = Field(gt=0, lt=3.0)
+
+    @property
+    def height_valid(self) -> bool:
+        """
+        Check if the max_height is greater than or equal to min_height.
+        """
+        return self.max_height >= self.min_height
+
+
+class GenreFilter(BaseModel):
+    """
+    Pydantic model for validating the request
+    parameters for the releases method.
+    """
+    genre: Optional[str] = None
 
 
 class MovieDataAnalyzer:
     """Class for downloading and analyzing movie data."""
     @staticmethod
-    def parse_date(date_str: Union[str, float, None]) -> Optional[pd.Timestamp]:
+    def parse_date(
+        date_str: Union[str, float, None]
+    ) -> Optional[pd.Timestamp]:
         """
         Parses a date string into a pandas datetime object.
 
@@ -180,7 +216,7 @@ class MovieDataAnalyzer:
                 print(f"File {file} does not match any expected data file.")
         print("All files have been loaded as DataFrame attributes.")
 
-    def movie_type(self, n: int = 10) -> pd.DataFrame:
+    def movie_type(self, request: MovieTypeRequest) -> pd.DataFrame:
         """
         Calculate the n most common types of movies and their counts.
 
@@ -191,14 +227,11 @@ class MovieDataAnalyzer:
             pd.DataFrame: DataFrame with columns "Movie_Type" and "Count" for
             the top n movie types.
         """
-        # Input validation
-        if not isinstance(n, int):
-            raise TypeError("n must be an integer")
-        if n <= 0:
-            raise ValueError("n must be a positive integer")
+        n = request.n
 
         # Split the movie genres into individual genres
-        genres: pd.Series = self.movie_metadata['movie_genres'].str.split(',').explode()
+        genres: pd.Series = self.movie_metadata[
+            'movie_genres'].str.split(',').explode()
 
         # Extract genres from the Freebase ID:name tuples
         genres = genres.str.replace(r'["{},]', '', regex=True).str.strip()
@@ -233,10 +266,9 @@ class MovieDataAnalyzer:
 
         return actor_histogram
 
-    def actor_distributions(self, gender: str,
-                            max_height: float,
-                            min_height: float,
-                            plot: bool = False) -> pd.DataFrame:
+    def actor_distributions(
+            self, actor_filter: ActorFilter, plot: bool = False
+            ) -> pd.DataFrame:
         """
         Calculate the distribution of actors' heights filtered by gender and
         height range.
@@ -251,22 +283,11 @@ class MovieDataAnalyzer:
             pd.DataFrame: DataFrame with columns "Height" and "Count" for the
             filtered actors.
         """
-        if not isinstance(gender, str):
-            raise TypeError("gender must be a string")
-        if not isinstance(max_height, (int, float)) or \
-                not isinstance(min_height, (int, float)):
-            raise TypeError("max_height and min_height must be numeric")
-
-        # Check if max_height is greater than min_height
-        if max_height < min_height:
-            raise ValueError("max_height must be greater than or equal to "
-                             "min_height")
-
-        # Check if height values are within a valid range
-        if max_height <= 0 or min_height <= 0 or \
-                max_height > 3 or min_height > 3:
-            raise ValueError("max_height and min_height must be positive "
-                             "values")
+        if not actor_filter.height_valid:
+            raise ValueError("max_height must be >= min_height")
+        gender = actor_filter.gender
+        max_height = actor_filter.max_height
+        min_height = actor_filter.min_height
 
         # Filter the dataset by gender if specified
         if gender != "All":
@@ -306,7 +327,7 @@ class MovieDataAnalyzer:
 
         return height_counts
 
-    def releases(self, genre: Optional[str] = None) -> pd.DataFrame:
+    def releases(self, genre_filter: GenreFilter) -> pd.DataFrame:
         """
         Calculate the number of movies released per year,
         optionally filtered by genre.
@@ -318,6 +339,8 @@ class MovieDataAnalyzer:
             pd.DataFrame: DataFrame with columns "Year" and "Count" for the
             number of movies released per year.
         """
+        genre = genre_filter.genre
+
         # Check if genre is a string
         if genre and not isinstance(genre, str):
             raise TypeError("genre must be a string")

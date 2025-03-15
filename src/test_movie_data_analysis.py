@@ -22,7 +22,11 @@ Usage:
 terminal.
 """
 import pytest
-from movie_data_analysis import MovieDataAnalyzer
+from movie_data_analysis import (
+    MovieDataAnalyzer,
+    MovieTypeRequest,
+    ActorFilter
+    )
 
 # Create an instance of the MovieDataAnalyzer class
 analyzer = MovieDataAnalyzer()
@@ -42,7 +46,7 @@ def test_movie_type_invalid_n():
         TypeError: If the parameter n is not of the expected type.
     """
     with pytest.raises(TypeError):
-        analyzer.movie_type(n="ten")
+        analyzer.movie_type(MovieTypeRequest(n="ten"))
 
 
 def test_movie_type_negative_value():
@@ -55,7 +59,7 @@ def test_movie_type_negative_value():
     n is negative.
     """
     with pytest.raises(ValueError):
-        analyzer.movie_type(n=-1)
+        analyzer.movie_type(MovieTypeRequest(n=-1))
 
 
 def test_movie_type_zero_value():
@@ -70,7 +74,7 @@ def test_movie_type_zero_value():
         ValueError: If the input value n is zero.
     """
     with pytest.raises(ValueError):
-        analyzer.movie_type(n=0)
+        analyzer.movie_type(MovieTypeRequest(n=0))
 
 
 def test_movie_type_large_value():
@@ -83,7 +87,7 @@ def test_movie_type_large_value():
     Raises:
         AssertionError: If 'movie_type' is not found in the result.
     """
-    result = analyzer.movie_type(n=1000)
+    result = analyzer.movie_type(MovieTypeRequest(n=1000))
     assert 'movie_type' in result
 
 
@@ -99,8 +103,8 @@ def test_actor_distributions_invalid_gender():
         TypeError: If the gender parameter is not of the expected type.
     """
     with pytest.raises(TypeError):
-        analyzer.actor_distributions(
-            gender=123, max_height=2.0, min_height=1.5)
+        actor_filter = ActorFilter(gender=123, max_height=2.0, min_height=1.5)
+        analyzer.actor_distributions(actor_filter)
 
 
 def test_actor_distributions_invalid_height_type():
@@ -115,8 +119,10 @@ def test_actor_distributions_invalid_height_type():
         TypeError: If the max_height parameter is not of a numeric type.
     """
     with pytest.raises(TypeError):
-        analyzer.actor_distributions(
-            gender="M", max_height="tall", min_height=1.5)
+        actor_filter = ActorFilter(gender="M",
+                                   max_height="tall",
+                                   min_height=1.5)
+        analyzer.actor_distributions(actor_filter)
 
 
 def test_actor_distributions_invalid_height_range():
@@ -133,8 +139,8 @@ def test_actor_distributions_invalid_height_range():
         ValueError when `min_height` is greater than `max_height`.
     """
     with pytest.raises(ValueError):
-        analyzer.actor_distributions(
-            gender="M", max_height=1.0, min_height=1.5)
+        actor_filter = ActorFilter(gender="M", max_height=1.0, min_height=1.5)
+        analyzer.actor_distributions(actor_filter)
 
 
 def test_actor_distributions_invalid_height_values():
@@ -150,11 +156,12 @@ def test_actor_distributions_invalid_height_values():
     The function is expected to raise a ValueError in both cases.
     """
     with pytest.raises(ValueError):
-        analyzer.actor_distributions(gender="M", max_height=0, min_height=1.5)
+        actor_filter = ActorFilter(gender="M", max_height=0, min_height=1.5)
+        analyzer.actor_distributions(actor_filter)
 
     with pytest.raises(ValueError):
-        analyzer.actor_distributions(
-            gender="M", max_height=2.5, min_height=3.5)
+        actor_filter = ActorFilter(gender="M", max_height=2.5, min_height=3.5)
+        analyzer.actor_distributions(actor_filter)
 
 # Test Functionality
 
@@ -172,7 +179,7 @@ def test_movie_type():
         AssertionError: If the returned movie type does not match the expected
         value.
     """
-    result = analyzer.movie_type(n=10)
+    result = analyzer.movie_type(MovieTypeRequest(n=10))
     assert any("Drama" in movie for movie in result['movie_type'])
 
 
@@ -183,6 +190,6 @@ def test_actor_distributions():
     This test checks if the actor_distributions function returns the correct
     distribution of"
     """
-    result = analyzer.actor_distributions(
-        gender="M", max_height=2.0, min_height=1.5)
+    actor_filter = ActorFilter(gender="M", max_height=2.0, min_height=1.5)
+    result = analyzer.actor_distributions(actor_filter)
     assert 'height' in result
