@@ -1,30 +1,30 @@
 """
 new_app.py
 
-This Streamlit application provides a dashboard for movie data analysis using 
-the `MovieDataAnalyzer` class. It includes visualizations for movie genre 
-distribution, actor count per movie, actor height distribution, movie releases 
+This Streamlit application provides a dashboard for movie data analysis using
+the `MovieDataAnalyzer` class. It includes visualizations for movie genre
+distribution, actor count per movie, actor height distribution, movie releases
 over time, and actor birthdate distribution.
 
 Modules:
     streamlit: For creating the web application.
     matplotlib.pyplot: For creating plots.
     seaborn: For creating statistical visualizations.
-    movie_data_analysis: Contains the `MovieDataAnalyzer` class for analyzing 
+    movie_data_analysis: Contains the `MovieDataAnalyzer` class for analyzing
     movie data.
 
 Usage:
-    Run the script to start the Streamlit application. Navigate through the 
+    Run the script to start the Streamlit application. Navigate through the
     sidebar to access different pages and visualizations.
 
 Pages:
-    Main Page: Displays visualizations for movie genre distribution, actor 
+    Main Page: Displays visualizations for movie genre distribution, actor
     count per movie, and actor height distribution.
-    Movie Release Info: Displays visualizations for movie releases over time 
+    Movie Release Info: Displays visualizations for movie releases over time
     and actor birthdate distribution.
 
 Note:
-    This app is built using the `MovieDataAnalyzer` class, loading and 
+    This app is built using the `MovieDataAnalyzer` class, loading and
     visualizing movie and character data.
 """
 
@@ -53,7 +53,9 @@ if page == "Main Page":
     # Sidebar: Input
     st.sidebar.header("Input Parameters")
     n = st.sidebar.number_input(
-        "Select n for Top Movie Genres", min_value=1, max_value=50, value=5, key="genre_n")
+        "Select n for Top Movie Genres",
+        min_value=1, max_value=50, value=5,
+        key="genre_n")
 
     # Plot 1: Movie Genre Distribution
     st.subheader("Movie Genre Distribution")
@@ -92,13 +94,11 @@ if page == "Main Page":
         x_limit = min(max_actors, 50)
 
         fig2, ax2 = plt.subplots(figsize=(10, 6))
-        sns.histplot(data=actor_histogram[actor_histogram['number_of_actors'] <= x_limit],
-                     x='number_of_actors',
-                     weights='movie_count',
-                     bins=25,
-                     kde=True,
-                     ax=ax2,
-                     color='lightcoral')
+        sns.histplot(
+            data=actor_histogram[
+                actor_histogram['number_of_actors'] <= x_limit],
+            x='number_of_actors', weights='movie_count', bins=25, kde=True,
+            ax=ax2, color='lightcoral')
 
         ax2.set_xlabel("Number of Actors per Movie")
         ax2.set_ylabel("Number of Movies")
@@ -190,7 +190,8 @@ if page == "Chronological Info":
         if selected_period == "Y":
             ax5.set_xlabel("Birth Year")
             ax5.set_title("Actor Birth Year Distribution")
-            ax5.set_xlim(birthdate_data['period'].min(), birthdate_data['period'].max())
+            ax5.set_xlim(
+                birthdate_data['period'].min(), birthdate_data['period'].max())
         else:
             ax5.set_xlabel("Birth Month")
             ax5.set_title("Actor Birth Month Distribution")
@@ -198,17 +199,19 @@ if page == "Chronological Info":
             ax5.yaxis.set_major_locator(plt.MaxNLocator(integer=True))
 
             # Rotate x-axis labels for better readability
-            ax5.set_xticklabels(birthdate_data['period'], rotation=45, ha='right')
+            ax5.set_xticklabels(
+                birthdate_data['period'], rotation=45, ha='right')
 
         ax5.set_ylabel("Frequency")
 
         # Display plot in Streamlit
         st.pyplot(fig5)
 
-        # Add note that actors whose birthmonth is unknown are counted shown in January
+        # Add note Actors with unknown birth months are shown in January
         if selected_period == "M":
             st.info(
-                "Note: Actors with unknown birth months are shown in January by default.")
+                "Note: Actors with unknown birth "
+                "months are shown in January by default.")
 
     except (KeyError, ValueError) as e:
         st.error(f"Error processing birthdate data: {e}")
@@ -231,7 +234,8 @@ if page == "Classification":
 
             # Get the plot summary
             movie_summary = analyzer.plot_summaries.loc[
-                analyzer.plot_summaries['wikipedia_movie_id'] == movie_id, 'summary']
+                analyzer.plot_summaries[
+                    'wikipedia_movie_id'] == movie_id, 'summary']
 
             if not movie_summary.empty:
                 MOVIE_SUMMARY = movie_summary.values[0]
@@ -264,7 +268,6 @@ if page == "Classification":
             ONLY print the names of Genres, separated by commas.\n
             Do not include any other information in the response.\n\n
             Example output: Action, Adventure, Comedy\n
-            
             Title: {{movie_title}}
             Summary: {{movie_summary}}
             """
@@ -272,7 +275,8 @@ if page == "Classification":
             # Initialize pipeline
             pipe = Pipeline()
             pipe.add_component("prompt_builder", PromptBuilder(
-                template=PROMPT, required_variables=["movie_title", "movie_summary"]))
+                template=PROMPT,
+                required_variables=["movie_title", "movie_summary"]))
             pipe.add_component("llm", OllamaGenerator(
                 model="deepseek-r1:1.5B"))
 
@@ -292,7 +296,8 @@ if page == "Classification":
             # Display the classified genres
             if "<think>" in classified_genres:
                 classified_genres = re.sub(
-                    r"<think>.*?</think>\s*", "", classified_genres, flags=re.DOTALL)
+                    r"<think>.*?</think>\s*", "",
+                    classified_genres, flags=re.DOTALL)
 
             # Display the classified genres
             st.text_area("Classified Genres by LLM", classified_genres)
@@ -306,22 +311,27 @@ if page == "Classification":
             Your classification: {{classified_genres}}\n
             Actual genres: {{actual_genres}}\n
 
-            ONLY write the one of the following responses. 
+            ONLY write the one of the following responses.
             Your response should not contain any other information.\n\n
 
-            If at least one classifed genre EXACTLY matches a genre in the 
-            actual genres, write:\n 
+            If at least one classifed genre EXACTLY matches a genre in the
+            actual genres, write:\n
             'I correctly classified one or more genres'.\n\n
 
-            If none of the classified genres matches the actual genres, write:\n
+            If none of the classified genres matches the actual genres,
+            write:\n
             'I did not correctly classify any genres'.
             """
 
             # Initialize the follow-up pipeline
             pipe_followup = Pipeline()
-            pipe_followup.add_component("followup_prompt_builder", PromptBuilder(
-                template=FOLLOWUP_PROMPT, required_variables=["classified_genres",
-                                                              "actual_genres"]))
+            pipe_followup.add_component(
+                "followup_prompt_builder",
+                PromptBuilder(template=FOLLOWUP_PROMPT,
+                              required_variables=[
+                                  "classified_genres",
+                                  "actual_genres"
+                                  ]))
             pipe_followup.add_component(
                 "llm", OllamaGenerator(model="deepseek-r1:1.5B"))
             pipe_followup.connect("followup_prompt_builder", "llm")
