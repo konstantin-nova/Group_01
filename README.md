@@ -13,9 +13,6 @@ Simon
 Vinzent
 65479@novasbe.pt
 
-Paul
-63573@novasbe.pt
-
 ## Instructions
 ### Set up Environment (optional)
 **Create Conda Environment**
